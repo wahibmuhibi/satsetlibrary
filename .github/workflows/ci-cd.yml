@@ -29,6 +29,9 @@ jobs:
       run: |
         cd wordpress
         composer install --prefer-dist --no-progress --no-interaction
+    
+    - name: Run PHPUnit tests
+      run: vendor/bin/phpunit
 
     - name: Build and push Docker image
       run: |
