@@ -7,47 +7,69 @@ on:
       - dev
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4.33'
 
-    - name: Set up PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '7.4.33'
+      - name: Install Composer dependencies
+        run: |
+          cd wordpress
+          composer install --prefer-dist --no-progress --no-interaction
 
-    - name: Install Composer dependencies
-      run: |
-        cd wordpress
-        composer install --prefer-dist --no-progress --no-interaction
+      - name: Run PHPUnit tests
+        run: |
+          cd wordpress
+          vendor/bin/phpunit --configuration phpunit.xml
 
-    - name: Run PHPUnit tests
-      run: |
-        cd wordpress
-        vendor/bin/phpunit --configuration phpunit.xml
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
 
-    - name: Log in to Google Cloud
-      uses: google-github-actions/auth@v0
-      with:
-        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Configure Docker for gcloud
-      run: gcloud auth configure-docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-    - name: Build and push Docker image
-      run: |
-        docker buildx build --platform linux/amd64,linux/arm64 -t gcr.io/$GCP_PROJECT_ID/wordpress:latest --push .
+      - name: Log in to Google Cloud
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-    - name: Deploy to Cloud Run
-      run: |
-        gcloud run deploy wordpress \
-          --image gcr.io/$GCP_PROJECT_ID/wordpress:latest \
-          --platform managed \
-          --region us-central1 \
-          --allow-unauthenticated
+      - name: Configure Docker for gcloud
+        run: gcloud auth configure-docker
+
+      - name: Build and push Docker image
+        run: |
+          docker buildx build --platform linux/amd64,linux/arm64 -t gcr.io/$GCP_PROJECT_ID/wordpress:latest --push .
+
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to Google Cloud
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy wordpress \
+            --image gcr.io/$GCP_PROJECT_ID/wordpress:latest \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated
