@@ -1,7 +1,0 @@
-<phpunit bootstrap="wordpress/wp-load.php">
-    <testsuites>
-        <testsuite name="WordPress Test Suite">
-            <directory>./tests</directory>
-        </testsuite>
-    </testsuites>
-</phpunit>

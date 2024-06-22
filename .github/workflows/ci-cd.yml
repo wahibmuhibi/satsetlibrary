@@ -30,7 +30,7 @@ jobs:
     - name: Run PHPUnit tests
       run: |
         cd wordpress
-        vendor/bin/phpunit
+        vendor/bin/phpunit --configuration phpunit.xml
 
     - name: Log in to Google Cloud
       uses: google-github-actions/auth@v0
