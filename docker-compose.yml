@@ -4,6 +4,7 @@ services:
     image: mariadb:latest
     volumes:
       - db_data:/var/lib/mysql
+      - ./backup:/docker-entrypoint-initdb.d
     restart: always
     environment:
       MARIADB_ROOT_PASSWORD: secret
@@ -16,7 +17,7 @@ services:
       - db
     image: wordpress:latest
     volumes:
-      - wordpress_data:/var/www/html
+      - ./wordpress:/var/www/html
     ports:
       - "80:80"
     restart: always
